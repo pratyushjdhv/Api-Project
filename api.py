@@ -28,9 +28,9 @@ class create_todo(Resource):
         tasks = data['task']
         
         if not title.strip():
-            return jsonify({"message": "Title cannot be empty"}), 400
+            return jsonify({"message": "Title cannot be empty"})
         if not tasks:
-            return jsonify({"message": "Task cannot be empty"}), 400
+            return jsonify({"message": "Task cannot be empty"})
 
         todo = todo_list.query.filter_by(title=title).first()
         if not todo:
@@ -50,17 +50,23 @@ class create_todo(Resource):
             db.session.commit()
             return jsonify({"message": "todo_task added to existing Todo-list"})
 
-    def put(self, task_id):
+    def put(self, list_id, task_id):
         data = request.get_json()
         tasks = data['task']
-        new_task = todo_task.query.filter_by(id=task_id).first()
-        if not new_task:
+        ids = todo_task.query.filter_by(list_id=list_id).all()
+        lis = [i.id for i in ids]
+        print(lis)        
+        if task_id not in lis:
             return jsonify({"message": "Task not found"})
-        for task in tasks:
-            new_task.task = task
+        new_task = todo_task.query.filter_by(id=task_id).first()
+        print(new_task)
+        print(new_task.task)
+        new_task.task = tasks
+        print(new_task.task)
         db.session.commit()
-        return jsonify({"message": "Task updated"}) 
-
+        return jsonify({"message": "Task updated"})
+        
+        
 
 class delete_todolist(Resource):
     def delete(self, list_id):
@@ -75,9 +81,21 @@ class delete_todolist(Resource):
             db.session.delete(task)
         db.session.commit()
         return jsonify({"message": "Todo-list deleted"})
-
-        
-
+    
+class delete_todo_task(Resource):
+    def delete(self,list_id, task_id):
+        ids = todo_task.query.filter_by(list_id=list_id).all()
+        print(ids)
+        lis=[]
+        for i in ids:
+            lis.append(i.id)
+        print(lis)
+        if task_id not in lis:
+            return jsonify({"message": "Task not found"})
+        task = todo_task.query.filter_by(id=task_id).first()
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({"message": "Task deleted"})
 
 class print_todo(Resource):
     def get(self, task_id=None):
@@ -96,9 +114,9 @@ class print_todo(Resource):
                 all_task.append({"title": todo.title, "tasks": temp_list})
             return jsonify({"tasks": all_task})
         
-
-api.add_resource(create_todo, '/todo' , '/todo/<int:task_id>')
+api.add_resource(create_todo, '/todo', '/todo/list/<int:list_id>/task/<int:task_id>')
 api.add_resource(delete_todolist, '/todo/list/<int:list_id>')
+api.add_resource(delete_todo_task, '/todo/list/<int:list_id>/task/<int:task_id>')
 api.add_resource(print_todo, '/todo/task', '/todo/task/<int:task_id>')
 
 if __name__ == '__main__':
